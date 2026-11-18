@@ -12,6 +12,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.work.*
 import java.util.concurrent.Executors
@@ -30,6 +31,28 @@ class SetupActivity : Activity() {
         val statusText = findViewById<TextView>(R.id.status_text)
         val errorBanner = findViewById<LinearLayout>(R.id.error_banner)
         val signInButton = findViewById<Button>(R.id.sign_in_button)
+        val scrollView = findViewById<ScrollView>(R.id.setup_scroll)
+
+        // Keep the Connect button reachable: when the token box gains focus or
+        // text is pasted (keyboard open, screen resized), scroll it into view.
+        val revealConnect = Runnable {
+            val rect = android.graphics.Rect()
+            connectButton.getDrawingRect(rect)
+            scrollView.offsetDescendantRectToMyCoords(connectButton, rect)
+            val margin = (16 * resources.displayMetrics.density).toInt()
+            val target = rect.bottom + margin - scrollView.height + scrollView.paddingBottom
+            if (target > scrollView.scrollY) scrollView.smoothScrollTo(0, target)
+        }
+        tokenInput.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) scrollView.postDelayed(revealConnect, 300)
+        }
+        tokenInput.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                scrollView.postDelayed(revealConnect, 150)
+            }
+        })
 
         signInButton.setOnClickListener {
             val url = TokenManager.buildLoginUrl(this)
